@@ -332,7 +332,8 @@ Example debug output:
 - **Architecture**: 
   - Cluster-based approach for related activities
   - Consolidation of similar activities (e.g., JWE encryption, AES encryption) into unified activities with type parameters
-  - Prevention of activity proliferation through smart consolidation
+  - Reduce code duplication by combining similar activities into configurable generic activities (e.g., single encryption activity with configurable algorithms)
+  - Automatic activity registration from structs - register a struct once and all its receiver methods with the expected signature will be automatically registered as activities
 - **Examples**: 
   - Creation of example applications in a new module
   - Comprehensive usage examples and best practices
