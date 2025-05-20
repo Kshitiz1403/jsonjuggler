@@ -11,7 +11,7 @@ import (
 	"github.com/kshitiz1403/jsonjuggler/logger/zap"
 )
 
-// Config holds the configuration for Data Dancer
+// Config holds the configuration for JSONJuggler
 type Config struct {
 	// DebugEnabled is a flag to enable debug mode
 	DebugEnabled bool
@@ -45,7 +45,7 @@ func WithLogger(log logger.Logger) Option {
 	}
 }
 
-// Initialize creates a new Data Dancer engine with the given configuration options
+// Initialize creates a new JSONJuggler engine with the given configuration options
 func Initialize(opts ...Option) *engine.Engine {
 	config := &Config{
 		CustomActivities: make(map[string]activities.Activity),

@@ -340,7 +340,3 @@ Example debug output:
 ## 📜 License
 
 MIT License
-
-## 📚 Detailed Documentation
-
-For more detailed documentation, examples, and advanced usage, please check the [v2 documentation](./v2/README.md).
