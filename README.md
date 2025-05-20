@@ -340,6 +340,12 @@ Example debug output:
   - Enable users to leverage Temporal's reliability features while using JSONJuggler's DSL
   - Maintain standalone functionality - JSONJuggler works perfectly without Temporal
   - Documentation and examples for Temporal integration patterns
+- **Observability**:
+  - OpenTelemetry integration for comprehensive workflow observability
+  - Automatic span creation for workflow states and activities
+  - Custom attributes for workflow-specific context
+  - Trace correlation across workflow boundaries
+  - Support for metrics and logs through OTEL collectors
 - **Examples**: 
   - Creation of example applications in a new module
   - Comprehensive usage examples and best practices
