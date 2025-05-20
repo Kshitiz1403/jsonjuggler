@@ -194,6 +194,18 @@ engine := config.Initialize(
 }
 ```
 
+## 🎨 Workflow Visualization
+
+JSONJuggler provides a web-based visualization tool to help you design and understand your workflows better. Visit [JSONJuggler Workflow Editor](https://kshitiz1403.github.io/swf-editor/) to:
+
+- Visualize your workflow definitions as interactive diagrams
+- Generate workflow diagrams with different quality settings (Low/Medium/High)
+- Toggle between light and dark themes
+- Export workflow diagrams as images
+- View your workflow in full-screen mode
+
+The editor provides a real-time preview of your workflow structure, making it easier to understand and debug complex state transitions and conditions.
+
 ## 🔧 Built-in Activities Detail
 
 ### JQ Transform
