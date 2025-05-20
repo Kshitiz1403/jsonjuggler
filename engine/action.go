@@ -13,7 +13,7 @@ import (
 )
 
 // executeAction executes a single action and returns its result
-func (e *Engine) executeAction(ctx context.Context, action sw.Action, data *WorkflowData, stateExec *StateExecution) (interface{}, error) {
+func (e *Engine) executeAction(ctx context.Context, action sw.Action, data *WorkflowData, stateExec *StateExecution) (result interface{}, err error) {
 	ctx = context.WithValue(ctx, logger.ActivityNameKey, action.FunctionRef.RefName)
 	e.logger.InfoContextf(ctx, "Executing activity: %s", action.FunctionRef.RefName)
 
@@ -29,6 +29,21 @@ func (e *Engine) executeAction(ctx context.Context, action sw.Action, data *Work
 			e.logger.DebugContextf(ctx, "Activity execution completed in %v", actionResult.EndTime.Sub(actionResult.StartTime))
 		}()
 	}
+
+	// Add panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			e.logger.ErrorContextf(ctx, "Panic recovered in activity execution: %v", r)
+			err = activities.NewActivityError(
+				activities.ErrPanic,
+				fmt.Sprintf("Panic in activity execution: %v", r),
+				action.FunctionRef.RefName,
+			)
+			if actionResult != nil {
+				actionResult.Error = err.Error()
+			}
+		}
+	}()
 
 	// Get activity
 	activity, ok := e.registry.Get(action.FunctionRef.RefName)
@@ -63,7 +78,7 @@ func (e *Engine) executeAction(ctx context.Context, action sw.Action, data *Work
 	e.logger.DebugContextf(ctx, "Executing activity with arguments: %+v", arguments)
 
 	// Execute activity
-	result, err := activity.Execute(ctx, arguments)
+	result, err = activity.Execute(ctx, arguments)
 	if err != nil {
 		e.logger.ErrorContextf(ctx, "Activity execution failed: %v", err)
 		if actionResult != nil {

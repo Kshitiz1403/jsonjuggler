@@ -11,6 +11,7 @@ const (
 	// Common activity errors
 	ErrInvalidArguments ErrorCode = "INVALID_ARGUMENTS"
 	ErrExecutionFailed  ErrorCode = "EXECUTION_FAILED"
+	ErrPanic            ErrorCode = "PANIC"
 
 	// HTTP specific errors
 	ErrHTTPRequestFailed  ErrorCode = "HTTP_REQUEST_FAILED"
