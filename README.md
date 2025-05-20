@@ -334,6 +334,12 @@ Example debug output:
   - Consolidation of similar activities (e.g., JWE encryption, AES encryption) into unified activities with type parameters
   - Reduce code duplication by combining similar activities into configurable generic activities (e.g., single encryption activity with configurable algorithms)
   - Automatic activity registration from structs - register a struct once and all its receiver methods with the expected signature will be automatically registered as activities
+- **Optional Temporal Support**:
+  - Provide adapters and interfaces for Temporal integration
+  - Allow activities to be wrapped as Temporal activities when needed
+  - Enable users to leverage Temporal's reliability features while using JSONJuggler's DSL
+  - Maintain standalone functionality - JSONJuggler works perfectly without Temporal
+  - Documentation and examples for Temporal integration patterns
 - **Examples**: 
   - Creation of example applications in a new module
   - Comprehensive usage examples and best practices
