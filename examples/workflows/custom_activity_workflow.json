@@ -1,0 +1,61 @@
+{
+  "id": "hello-world-workflow",
+  "version": "1.0",
+  "specVersion": "0.9",
+  "name": "Hello World Custom Activity Workflow",
+  "description": "Demonstrates using a custom activity with data transformation",
+  "start": "PrepareInput",
+  "states": [
+    {
+      "name": "PrepareInput",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "{ message: \"Processing request\", data: .input }",
+              "data": "${ .current }"
+            }
+          }
+        }
+      ],
+      "transition": {
+        "nextState": "ExecuteHelloWorld"
+      }
+    },
+    {
+      "name": "ExecuteHelloWorld",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "HelloWorld",
+            "arguments": {
+              "input": "${ .current }"
+            }
+          }
+        }
+      ],
+      "transition": {
+        "nextState": "FormatOutput"
+      }
+    },
+    {
+      "name": "FormatOutput",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "{ status: \"success\", result: ., timestamp: now }",
+              "data": "${ .current }"
+            }
+          }
+        }
+      ],
+      "end": true
+    }
+  ]
+}

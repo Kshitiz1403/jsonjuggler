@@ -1,0 +1,139 @@
+{
+  "id": "error-handling-workflow",
+  "version": "1.0",
+  "specVersion": "0.8",
+  "name": "Error Handling Workflow",
+  "description": "Demonstrates error handling with onErrors",
+  "start": "ValidateOrder",
+  "functions": [
+    {
+      "name": "JQ",
+      "operation": "jq:transform"
+    },
+    {
+      "name": "HTTPRequest",
+      "operation": "http:request"
+    }
+  ],
+  "states": [
+    {
+      "name": "ValidateOrder",
+      "type": "operation",
+      "actions": [
+        {
+          "name": "validate",
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "if .order.amount <= 0 then error(\"Invalid order amount\") else {order: .order } end",
+              "data": "${ .current }"
+            }
+          }
+        }
+      ],
+      "transition": "ProcessOrder"
+    },
+    {
+      "name": "ProcessOrder",
+      "type": "operation",
+      "actions": [
+        {
+          "name": "process",
+          "functionRef": {
+            "refName": "HTTPRequest",
+            "arguments": {
+              "url": "${ .globals.serverURL }",
+              "method": "POST",
+              "body": "${ .current.order }",
+              "failOnError": "${ true }",
+              "timeoutSec": "${ .globals.timeoutSeconds // 10 }"
+            }
+          }
+        }
+      ],
+      "onErrors": [
+        {
+          "errorRef": "connection refused",
+          "transition": "HandleConnectionError"
+        },
+        {
+          "errorRef": "context deadline exceeded",
+          "transition": "HandleTimeout"
+        },
+        {
+          "errorRef": "DefaultErrorRef",
+          "transition": "HandleGenericError"
+        }
+      ],
+      "transition": "CompleteOrder"
+    },
+    {
+      "name": "HandleConnectionError",
+      "type": "operation",
+      "actions": [
+        {
+          "name": "handleConnection",
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "{ error: \"Connection error occurred\", order: ., retry_after: 60 }",
+              "data": "${ .current }"
+            }
+          }
+        }
+      ],
+      "end": true
+    },
+    {
+      "name": "HandleTimeout",
+      "type": "operation",
+      "actions": [
+        {
+          "name": "handleTimeout",
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "{ error: \"Request timed out\", order: ., retry_after: 30 }",
+              "data": "${ .current }"
+            }
+          }
+        }
+      ],
+      "end": true
+    },
+    {
+      "name": "HandleGenericError",
+      "type": "operation",
+      "actions": [
+        {
+          "name": "handleGeneric",
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "{ error: \"An unexpected error occurred\", order: ., needs_investigation: true }",
+              "data": "${ .current }"
+            }
+          }
+        }
+      ],
+      "end": true
+    },
+    {
+      "name": "CompleteOrder",
+      "type": "operation",
+      "actions": [
+        {
+          "name": "complete",
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "{ status: \"completed\", order: . }",
+              "data": "${ .current }"
+            }
+          }
+        }
+      ],
+      "end": true
+    }
+  ]
+}

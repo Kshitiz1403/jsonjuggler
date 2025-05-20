@@ -1,0 +1,209 @@
+{
+  "version": "1.0",
+  "specVersion": "0.9",
+  "id": "loan-application-workflow",
+  "name": "Loan Application Processing",
+  "description": "Process loan applications with credit checks, risk assessment, and document verification",
+  "start": "ExtractApplication",
+  "states": [
+    {
+      "name": "ExtractApplication",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "{ applicant: .application.user, loan: .application.loan, applicationId: (.application.id | tostring), timestamp: now }",
+              "data": "${ .current }"
+            }
+          }
+        }
+      ],
+      "transition": {
+        "nextState": "EnrichUserData"
+      }
+    },
+    {
+      "name": "EnrichUserData",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "HTTPRequest",
+            "arguments": {
+              "url": "http://postman-echo.com/get",
+              "method": "GET",
+              "headers": {
+                "X-Request-ID": "${ .states.ExtractApplication.applicationId }",
+                "X-User-ID": "${ .states.ExtractApplication.applicant.id }"
+              }
+            }
+          }
+        },
+        {
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "{ user: .states.ExtractApplication.applicant, enriched: .current.body | fromjson, meta: { requestId: .states.ExtractApplication.applicationId } }",
+              "data": "${ . }"
+            }
+          }
+        }
+      ],
+      "transition": {
+        "nextState": "CalculateRiskScore"
+      }
+    },
+    {
+      "name": "CalculateRiskScore",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "{ score: (.states.ExtractApplication.applicant.income / .states.ExtractApplication.loan.amount * 100 | floor), factors: { income: .states.ExtractApplication.applicant.income, amount: .states.ExtractApplication.loan.amount, history: .states.EnrichUserData.enriched.creditHistory } }",
+              "data": "${ . }"
+            }
+          }
+        }
+      ],
+      "transition": {
+        "nextState": "EvaluateApplication"
+      }
+    },
+    {
+      "name": "EvaluateApplication",
+      "type": "switch",
+      "dataConditions": [
+        {
+          "name": "HighRisk",
+          "condition": ".states.CalculateRiskScore.score < 50",
+          "transition": {
+            "nextState": "RejectApplication"
+          }
+        },
+        {
+          "name": "MediumRisk",
+          "condition": ".states.CalculateRiskScore.score < 75",
+          "transition": {
+            "nextState": "RequestAdditionalDocuments"
+          }
+        }
+      ],
+      "defaultCondition": {
+        "transition": {
+          "nextState": "ApproveApplication"
+        }
+      }
+    },
+    {
+      "name": "RequestAdditionalDocuments",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "{ application: { id: .states.ExtractApplication.applicationId, timestamp: .states.ExtractApplication.timestamp }, risk: .states.CalculateRiskScore, user: .states.EnrichUserData.user }",
+              "data": "${ . }"
+            }
+          }
+        },
+        {
+          "functionRef": {
+            "refName": "HTTPRequest",
+            "arguments": {
+              "url": "http://postman-echo.com/post",
+              "method": "POST",
+              "headers": {
+                "Content-Type": "application/json",
+                "X-Risk-Score": "${ .current.risk.score | tostring }",
+                "X-User-ID": "${ .current.user.id }"
+              },
+              "body": "${ { \"requiredDocs\": [\"bankStatements\", \"taxReturns\"], \"reason\": \"Additional verification needed\", \"riskFactors\": .current.risk.factors } }"
+            }
+          }
+        }
+      ],
+      "end": true
+    },
+    {
+      "name": "ApproveApplication",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "{ decision: \"approved\", applicationId: .states.ExtractApplication.applicationId, riskScore: .states.CalculateRiskScore.score, approvedAmount: .states.ExtractApplication.loan.amount, timestamp: now }",
+              "data": "${ . }"
+            }
+          }
+        },
+        {
+          "functionRef": {
+            "refName": "HTTPRequest",
+            "arguments": {
+              "url": "http://postman-echo.com/post",
+              "method": "POST",
+              "headers": {
+                "Content-Type": "application/json"
+              },
+              "body": "${ .current }"
+            }
+          }
+        }
+      ],
+      "transition": "GetResponseBody"
+    },
+    {
+      "name": "RejectApplication",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "{ decision: \"rejected\", applicationId: .states.ExtractApplication.applicationId, riskScore: .states.CalculateRiskScore.score, factors: .states.CalculateRiskScore.factors, timestamp: now }",
+              "data": "${ . }"
+            }
+          }
+        },
+        {
+          "functionRef": {
+            "refName": "HTTPRequest",
+            "arguments": {
+              "url": "http://postman-echo.com/post",
+              "method": "POST",
+              "headers": {
+                "Content-Type": "application/json"
+              },
+              "body": "${ .current }"
+            }
+          }
+        }
+      ],
+      "transition": {
+        "nextState": "GetResponseBody"
+      }
+    },
+    {
+      "name": "GetResponseBody",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": ".body | fromjson | .data",
+              "data": "${ .current }"
+            }
+          }
+        }
+      ],
+      "end": true
+    }
+  ]
+}

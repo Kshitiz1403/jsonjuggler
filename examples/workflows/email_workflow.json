@@ -1,0 +1,116 @@
+{
+  "version": "1.0",
+  "specVersion": "0.9",
+  "id": "email-encryption-workflow",
+  "name": "Email Encryption and Search Workflow",
+  "description": "Workflow to extract email, encrypt it, decrypt it, search user and sign XML",
+  "start": "ExtractUserData",
+  "states": [
+    {
+      "name": "ExtractUserData",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": ".user",
+              "data": "${ .current }"
+            }
+          }
+        }
+      ],
+      "transition": {
+        "nextState": "CheckUserType"
+      }
+    },
+    {
+      "name": "CheckUserType",
+      "type": "switch",
+      "dataConditions": [
+        {
+          "name": "CheckPremium",
+          "condition": ".current.type == \"premium\"",
+          "transition": {
+            "nextState": "PremiumUserProcess"
+          }
+        },
+        {
+          "name": "CheckBusiness",
+          "condition": ".current.type == \"business\"",
+          "transition": {
+            "nextState": "BusinessUserProcess"
+          }
+        }
+      ],
+      "defaultCondition": {
+        "transition": {
+          "nextState": "StandardUserProcess"
+        }
+      }
+    },
+    {
+      "name": "PremiumUserProcess",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "HTTPRequest",
+            "arguments": {
+              "url": "http://postman-echo.com/post",
+              "method": "POST",
+              "headers": {
+                "Content-Type": "application/json"
+              },
+              "body": "${ .current }",
+              "timeoutSec": 5
+            }
+          }
+        }
+      ],
+      "end": true
+    },
+    {
+      "name": "BusinessUserProcess",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "HTTPRequest",
+            "arguments": {
+              "url": "http://postman-echo.com/post",
+              "method": "POST",
+              "headers": {
+                "Content-Type": "application/json"
+              },
+              "body": "${ .current }",
+              "timeoutSec": 5
+            }
+          }
+        }
+      ],
+      "end": true
+    },
+    {
+      "name": "StandardUserProcess",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "HTTPRequest",
+            "arguments": {
+              "url": "http://postman-echo.com/post",
+              "method": "POST",
+              "headers": {
+                "Content-Type": "application/json"
+              },
+              "body": "${ .current }",
+              "timeoutSec": 5
+            }
+          }
+        }
+      ],
+      "end": true
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "id": "sleep-workflow",
+  "version": "1.0",
+  "specVersion": "0.8",
+  "name": "Sleep State Workflow",
+  "description": "Demonstrates sleep state functionality with different durations",
+  "start": "ProcessInitial",
+  "states": [
+    {
+      "name": "ProcessInitial",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "{ status: \"started\", timestamp: now }",
+              "data": "${ .current }"
+            }
+          }
+        }
+      ],
+      "transition": "WaitShort"
+    },
+    {
+      "name": "WaitShort",
+      "type": "sleep",
+      "duration": "PT1S",
+      "transition": {
+        "nextState": "ProcessIntermediate"
+      }
+    },
+    {
+      "name": "ProcessIntermediate",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": ".status = \"intermediate\"",
+              "data": "${ .current }"
+            }
+          }
+        }
+      ],
+      "transition": "WaitLong"
+    },
+    {
+      "name": "WaitLong",
+      "type": "sleep",
+      "duration": "PT2S",
+      "transition": {
+        "nextState": "ProcessFinal"
+      }
+    },
+    {
+      "name": "ProcessFinal",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": ".status = \"completed\"",
+              "data": "${ .current }"
+            }
+          }
+        }
+      ],
+      "end": true
+    }
+  ]
+}

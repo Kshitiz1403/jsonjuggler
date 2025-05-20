@@ -1,0 +1,43 @@
+{
+  "id": "html-unescape-workflow",
+  "version": "1.0",
+  "specVersion": "0.9",
+  "name": "HTML Unescape Workflow",
+  "description": "Demonstrates using the HTML unescape activity",
+  "start": "UnescapeHTML",
+  "states": [
+    {
+      "name": "UnescapeHTML",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "HTMLUnescape",
+            "arguments": {
+              "text": "${ .current.htmlText }"
+            }
+          }
+        }
+      ],
+      "transition": {
+        "nextState": "FormatOutput"
+      }
+    },
+    {
+      "name": "FormatOutput",
+      "type": "operation",
+      "actions": [
+        {
+          "functionRef": {
+            "refName": "JQ",
+            "arguments": {
+              "query": "{ unescaped: ., timestamp: now }",
+              "data": "${ .current }"
+            }
+          }
+        }
+      ],
+      "end": true
+    }
+  ]
+}
