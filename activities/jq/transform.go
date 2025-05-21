@@ -15,12 +15,12 @@ type TransformArgs struct {
 }
 
 type TransformActivity struct {
-	*activities.BaseActivity
+	activities.BaseActivity
 }
 
 func New(activityName string, logger logger.Logger) *TransformActivity {
 	return &TransformActivity{
-		BaseActivity: &activities.BaseActivity{
+		BaseActivity: activities.BaseActivity{
 			ActivityName: activityName,
 			Logger:       logger,
 		},

@@ -41,14 +41,14 @@ func (r *Response) ToMap() map[string]any {
 
 // RequestActivity performs HTTP requests
 type RequestActivity struct {
-	*activities.BaseActivity
+	activities.BaseActivity
 	client *http.Client
 }
 
 // New creates a new HTTP request activity
 func New(activityName string, logger logger.Logger) *RequestActivity {
 	return &RequestActivity{
-		BaseActivity: &activities.BaseActivity{
+		BaseActivity: activities.BaseActivity{
 			ActivityName: activityName,
 			Logger:       logger,
 		},

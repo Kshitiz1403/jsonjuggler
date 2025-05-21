@@ -21,12 +21,12 @@ type EncryptArgs struct {
 }
 
 type EncryptActivity struct {
-	*activities.BaseActivity
+	activities.BaseActivity
 }
 
 func New(activityName string, logger logger.Logger) *EncryptActivity {
 	return &EncryptActivity{
-		BaseActivity: &activities.BaseActivity{
+		BaseActivity: activities.BaseActivity{
 			ActivityName: activityName,
 			Logger:       logger,
 		},

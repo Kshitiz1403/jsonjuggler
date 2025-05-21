@@ -16,13 +16,13 @@ type UnescapeArgs struct {
 
 // UnescapeActivity unescapes HTML-escaped text
 type UnescapeActivity struct {
-	*activities.BaseActivity
+	activities.BaseActivity
 }
 
 // New creates a new HTML unescape activity
 func New(activityName string, logger logger.Logger) *UnescapeActivity {
 	return &UnescapeActivity{
-		BaseActivity: &activities.BaseActivity{
+		BaseActivity: activities.BaseActivity{
 			ActivityName: activityName,
 			Logger:       logger,
 		},
