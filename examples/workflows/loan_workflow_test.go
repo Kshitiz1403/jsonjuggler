@@ -16,10 +16,12 @@ import (
 )
 
 func TestLoanWorkflow(t *testing.T) {
-	engine := config.Initialize(
+	engine, err := config.Initialize(
 		config.WithDebug(true),
 		config.WithLogger(zap.NewLogger(logger.DebugLevel)),
 	)
+	require.NoError(t, err)
+
 	p := parser.NewParser(engine.GetRegistry())
 	workflow, err := p.ParseFromFile("loan_workflow.json")
 	require.NoError(t, err)

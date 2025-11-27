@@ -30,11 +30,12 @@ func TestHelloWorldWorkflow(t *testing.T) {
 	customLogger := zap.NewLogger(logger.DebugLevel)
 
 	// Initialize engine with custom activity
-	engine := config.Initialize(
+	engine, err := config.Initialize(
 		config.WithLogger(customLogger),
 		config.WithDebug(true),
 		config.WithActivity("HelloWorld", &CustomHelloWorldActivity{}),
 	)
+	require.NoError(t, err)
 
 	// Create context with fields
 	ctx := logger.WithFields(context.Background(),

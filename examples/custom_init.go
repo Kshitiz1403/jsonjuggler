@@ -32,11 +32,15 @@ func main() {
 	customLogger := zap.NewLogger(logger.DebugLevel)
 
 	// Initialize engine with logger
-	engine := config.Initialize(
+	engine, err := config.Initialize(
 		config.WithLogger(customLogger),
 		config.WithDebug(true),
 		config.WithActivity("HelloWorld", &CustomHelloWorldActivity{}),
 	)
+	if err != nil {
+		customLogger.ErrorContextf(context.TODO(), "Error initializing engine: %v", err)
+		return
+	}
 
 	// Create context with fields
 	ctx := logger.WithFields(context.Background(),

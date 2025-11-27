@@ -2,23 +2,26 @@ package config
 
 import (
 	"github.com/kshitiz1403/jsonjuggler/activities"
-	"github.com/kshitiz1403/jsonjuggler/activities/html"
 	"github.com/kshitiz1403/jsonjuggler/activities/http"
 	"github.com/kshitiz1403/jsonjuggler/activities/jq"
-	"github.com/kshitiz1403/jsonjuggler/activities/jwe"
 	"github.com/kshitiz1403/jsonjuggler/engine"
 	"github.com/kshitiz1403/jsonjuggler/logger"
 	"github.com/kshitiz1403/jsonjuggler/logger/zap"
+	"github.com/kshitiz1403/jsonjuggler/telemetry"
 )
 
-// Config holds the configuration for JSONJuggler
+// Config holds the configuration for JsonJuggler
 type Config struct {
 	// DebugEnabled is a flag to enable debug mode
 	DebugEnabled bool
 	// CustomActivities is a map of activity name to activity implementation
 	CustomActivities map[string]activities.Activity
+	// ActivityStructs is a slice of activity structs to register
+	ActivityStructs []interface{}
 	// Logger is the logger implementation to use
 	Logger logger.Logger
+	// Telemetry configuration
+	TelemetryConfig *telemetry.Config
 }
 
 // Option is a function that modifies Config
@@ -45,8 +48,22 @@ func WithLogger(log logger.Logger) Option {
 	}
 }
 
+// WithActivityStruct adds all activities from a struct to the configuration
+func WithActivityStruct(activityStruct interface{}) Option {
+	return func(c *Config) {
+		c.ActivityStructs = append(c.ActivityStructs, activityStruct)
+	}
+}
+
+// WithTelemetry adds telemetry configuration
+func WithTelemetry(cfg *telemetry.Config) Option {
+	return func(c *Config) {
+		c.TelemetryConfig = cfg
+	}
+}
+
 // Initialize creates a new JSONJuggler engine with the given configuration options
-func Initialize(opts ...Option) *engine.Engine {
+func Initialize(opts ...Option) (*engine.Engine, error) {
 	config := &Config{
 		CustomActivities: make(map[string]activities.Activity),
 		Logger:           zap.NewLogger(logger.InfoLevel), // Default logger
@@ -57,6 +74,16 @@ func Initialize(opts ...Option) *engine.Engine {
 		opt(config)
 	}
 
+	// Initialize telemetry
+	var tel *telemetry.Telemetry
+	if config.TelemetryConfig != nil {
+		var err error
+		tel, err = telemetry.New(config.TelemetryConfig)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Create registry and register activities
 	registry := activities.NewRegistry(config.Logger)
 
@@ -65,20 +92,24 @@ func Initialize(opts ...Option) *engine.Engine {
 
 	// Register custom activities
 	for name, activity := range config.CustomActivities {
-		registry.Register(name, activity)
+		if err := registry.RegisterActivity(name, activity); err != nil {
+			return nil, err
+		}
 	}
 
-	return engine.NewEngine(registry, config.DebugEnabled, config.Logger)
+	// Register activity structs
+	for _, activityStruct := range config.ActivityStructs {
+		if err := registry.RegisterActivityStruct(activityStruct); err != nil {
+			return nil, err
+		}
+	}
+
+	return engine.NewEngine(registry, config.DebugEnabled, config.Logger, tel), nil
 }
 
 func registerBuiltInActivities(registry *activities.Registry) {
 	// Here we'll register all the built-in activities
 	// For example:
-	registry.Register("JQ", jq.New("JQ", registry.GetLogger()))
-	registry.Register("JWEEncrypt", jwe.New("JWEEncrypt", registry.GetLogger()))
-	registry.Register("HTTPRequest", http.New("HTTPRequest", registry.GetLogger()))
-	registry.Register("HTMLUnescape", html.New("HTMLUnescape", registry.GetLogger()))
-	// registry.Register("JQTransform", jq.NewTransformActivity())
-	// registry.Register("JWEEncrypt", jwe.NewEncryptActivity())
-	// etc.
+	registry.RegisterActivity("JQ", jq.New("JQ", registry.GetLogger()))
+	registry.RegisterActivity("HTTPRequest", http.New("HTTPRequest", registry.GetLogger()))
 }

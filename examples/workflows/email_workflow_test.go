@@ -25,10 +25,11 @@ func writeToFile(path string, data []byte) error {
 
 func TestEmailWorkflow(t *testing.T) {
 	// Initialize engine with debugging enabled
-	engine := config.Initialize(
+	engine, err := config.Initialize(
 		config.WithDebug(true),
 		config.WithLogger(zap.NewLogger(logger.DebugLevel)),
 	)
+	require.NoError(t, err)
 
 	// Parse workflow definition
 	p := parser.NewParser(engine.GetRegistry())

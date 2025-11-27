@@ -7,7 +7,10 @@ import (
 
 	"github.com/kshitiz1403/jsonjuggler/activities"
 	"github.com/kshitiz1403/jsonjuggler/logger"
+	"github.com/kshitiz1403/jsonjuggler/telemetry"
 	sw "github.com/serverlessworkflow/sdk-go/v2/model"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Engine executes serverless workflows
@@ -18,14 +21,16 @@ type Engine struct {
 	currentDebug *ExecutionDebug
 	logger       logger.Logger
 	statesMemo   map[string]sw.State
+	telemetry    *telemetry.Telemetry
 }
 
 // NewEngine creates a new workflow engine
-func NewEngine(registry *activities.Registry, debugEnabled bool, log logger.Logger) *Engine {
+func NewEngine(registry *activities.Registry, debugEnabled bool, log logger.Logger, tel *telemetry.Telemetry) *Engine {
 	return &Engine{
 		registry:     registry,
 		debugEnabled: debugEnabled,
 		logger:       log,
+		telemetry:    tel,
 	}
 }
 
@@ -35,7 +40,21 @@ func (e *Engine) GetRegistry() *activities.Registry {
 }
 
 // Execute runs a workflow with the given input
-func (e *Engine) Execute(ctx context.Context, workflow *sw.Workflow, input interface{}, globals map[string]interface{}) (executionResult *ExecutionResult, err error) {
+func (e *Engine) Execute(ctx context.Context, workflow *ServerlessWorkflow, input interface{}, globals map[string]interface{}) (executionResult *ExecutionResult, err error) {
+	if e.telemetry != nil {
+		var span trace.Span
+		ctx, span = e.telemetry.StartWorkflowSpan(ctx, workflow.ID)
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+			} else {
+				span.SetStatus(codes.Ok, "")
+			}
+			span.End()
+		}()
+	}
+
 	executionResult = &ExecutionResult{}
 	startTime := time.Now()
 
@@ -44,8 +63,10 @@ func (e *Engine) Execute(ctx context.Context, workflow *sw.Workflow, input inter
 		return nil, NewWorkflowError(ErrWorkflowInvalid, "workflow cannot be nil")
 	}
 
-	// Add workflow ID to context for logging
-	ctx = context.WithValue(ctx, logger.WorkflowIDKey, workflow.ID)
+	if workflow.ID != "" {
+		// Add workflow ID to context for logging
+		ctx = context.WithValue(ctx, logger.WorkflowIDKey, workflow.ID)
+	}
 
 	e.logger.InfoContextf(ctx, "Starting workflow execution. ID: %s", workflow.ID)
 
@@ -67,6 +88,16 @@ func (e *Engine) Execute(ctx context.Context, workflow *sw.Workflow, input inter
 		executionResult.Duration = executionTime
 		if e.debugEnabled {
 			executionResult.Debug = e.currentDebug
+		}
+
+		// Record workflow duration
+		if e.telemetry != nil {
+			e.telemetry.RecordWorkflowDuration(ctx, executionTime.Seconds(), workflow.ID)
+			if err != nil {
+				if wErr, ok := err.(*WorkflowError); ok {
+					e.telemetry.RecordWorkflowError(ctx, workflow.ID, string(wErr.Code))
+				}
+			}
 		}
 	}()
 
@@ -123,7 +154,7 @@ func (e *Engine) Execute(ctx context.Context, workflow *sw.Workflow, input inter
 	return executionResult, nil
 }
 
-func (e *Engine) findState(workflow *sw.Workflow, name string) sw.State {
+func (e *Engine) findState(workflow *ServerlessWorkflow, name string) sw.State {
 	if e.statesMemo == nil {
 		e.statesMemo = make(map[string]sw.State)
 		for _, state := range workflow.States {
